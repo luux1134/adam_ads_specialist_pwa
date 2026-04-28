@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "adam-ads-specialist-v4";
+﻿const CACHE_NAME = "adam-ads-specialist-v5";
 const ASSETS = ["./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {
@@ -36,5 +36,6 @@ self.addEventListener("fetch", event => {
 
   event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request)));
 });
+
 
 
