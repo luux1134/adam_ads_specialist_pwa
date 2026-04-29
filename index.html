@@ -37,7 +37,7 @@
 const API_KEY="AIzaSyADK3alDzNTsEkbKGVDbrdHYBj0esGF0KU";
 const SHEET_ID="17j732Xnp48sOWR_ignS3pgc5eKL4OPCJwUJWKH5Euv4";
 const SHEETS={advice:"ADAM_Advice",account:"GAds_Account_Daily",campaigns:"GAds_Campaigns",adGroups:"GAds_AdGroups",keywords:"GAds_Keywords",keywordConversions:"GAds_Keyword_Conversions",terms:"GAds_SearchTerms",searchTermConversions:"GAds_SearchTerm_Conversions",pmaxTerms:"GAds_PMax_SearchTerms",campaignStatus:"GAds_Campaign_Status",ads:"GAds_Ads",adAssets:"GAds_AdAssets",assetGroups:"GAds_AssetGroups",assetGroupAssets:"GAds_AssetGroupAssets",devices:"GAds_Devices",hours:"GAds_Hours",locations:"GAds_Locations",landing:"GAds_LandingPages",funnel:"GA4_Ads_Funnel",objectifs:"Objectifs",actionLog:"ADAM_Action_Log"};
-const CKEY="adam-cache-v27",TTL=36e5;
+const CKEY="adam-cache-v28",TTL=36e5;
 const DEFAULT_DAILY_BUDGET_EUR=30;
 const app=document.getElementById("app");
 const NF=new Intl.NumberFormat("fr-FR");
@@ -50,14 +50,25 @@ async function init(){
 }
 async function load(force=false){
   const c=cacheRead();if(!force&&c&&Date.now()-c.t<TTL)return c.d;
-  const pairs=await Promise.all(Object.entries(SHEETS).map(async([k,n])=>[k,await fetchSheet(n)]));
+  const pairs=[];
+  for(const [k,n] of Object.entries(SHEETS)){
+    pairs.push([k,await fetchSheet(n)]);
+    await sleep(90);
+  }
   const data=Object.fromEntries(pairs);cacheWrite(data);return data;
 }
 async function fetchSheet(name){
   const url=`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(name)}!A:Z?valueRenderOption=UNFORMATTED_VALUE&key=${API_KEY}`;
-  const res=await fetch(url);if(!res.ok){if(res.status===400||res.status===404)return[];throw new Error(`${name}:${res.status}`)}
-  const values=(await res.json()).values||[];return rowsToObjects(values);
+  for(let i=0;i<4;i++){
+    const res=await fetch(url);
+    if(res.ok){const values=(await res.json()).values||[];return rowsToObjects(values)}
+    if(res.status===400||res.status===404)return[];
+    if(res.status===429||res.status===503){await sleep(650*(i+1));continue}
+    throw new Error(`${name}:${res.status}`);
+  }
+  return [];
 }
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function rowsToObjects(values){if(!values.length)return[];const headers=values[0].map(x=>String(x||"").trim());return values.slice(1).filter(r=>r.some(Boolean)).map(r=>{const o={};headers.forEach((h,i)=>o[h]=dateHeader(h)?normDate(r[i]):r[i]??"");return o})}
 function dateHeader(h){return String(h).toLowerCase()==="date"}function normDate(v){if(typeof v==="number"){const d=new Date(Math.round((v-25569)*86400*1000));return d.toISOString().slice(0,10)}return String(v||"").slice(0,10)}
 function cacheRead(){try{return JSON.parse(sessionStorage.getItem(CKEY)||"")}catch{return null}}function cacheWrite(d){try{sessionStorage.setItem(CKEY,JSON.stringify({t:Date.now(),d}))}catch{}}
