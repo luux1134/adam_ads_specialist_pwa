@@ -1,4 +1,4 @@
-const CACHE_NAME = "adam-ads-specialist-v57";
+const CACHE_NAME = "adam-ads-specialist-v58";
 const ASSETS = ["./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", event => {
